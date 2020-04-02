@@ -1,0 +1,25 @@
+version: '3.3'
+
+services:
+
+  repo:
+    build:
+      context: .
+      args:
+        - ONEC_VERSION=8.3.10.2252 
+
+    image: sergefocus/onec-crs:8.3.10.2252
+    container_name: onec-crs
+    ports:
+      - 1542:1542
+    volumes:
+      - ./stor/:/home/usr1cv8/.1cv8
+
+    networks:
+      - back_net
+    restart: always
+
+
+
+networks:
+  back_net: {}
