@@ -8,7 +8,7 @@ dive.log
 *.gz
 *.rar
 *.exe
-./!/*
+!/*
 
 # Configuration file for HASP LM
 nethasp.ini
