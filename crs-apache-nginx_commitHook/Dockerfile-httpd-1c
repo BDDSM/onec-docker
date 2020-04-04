@@ -36,7 +36,8 @@ ADD https://github.com/tianon/gosu/releases/download/$gosu_ver/gosu-i386 /bin/go
 
 RUN chmod +x /bin/gosu
 
-FROM i386/debian:stretch-slim
+FROM i386/httpd:2.4
+
 LABEL maintainer="Serge Skurskiy <serge.focus@gmail.com>"
 
 ARG onec_uid="999"
@@ -60,11 +61,8 @@ RUN groupadd -r grp1cv8 --gid=$onec_gid \
   && mkdir -p /home/usr1cv8/.1cv8 \
   && chown -R usr1cv8:grp1cv8 /home/usr1cv8
 
-VOLUME /home/usr1cv8/.1cv8
+COPY ./conf/httpd.conf /usr/local/apache2/conf/httpd.conf
+COPY ./stor/repository.1ccr /home/usr1cv8/.1cv8 
 
-COPY ./docker-entrypoint.sh /usr/local/bin
-RUN ln -s usr/local/bin/docker-entrypoint.sh / # backwards compat
-ENTRYPOINT ["docker-entrypoint.sh"]
-
-EXPOSE 1542
-#CMD ["crserver"]
+EXPOSE 80
+CMD ["httpd-foreground"]

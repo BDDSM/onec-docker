@@ -6,7 +6,8 @@ services:
     build:
       context: .
       args:
-        - ONEC_VERSION=8.3.10.2252 
+        - ONEC_VERSION=8.3.10.2252
+        - ONEC_IP=192.168.0.105 
 
     image: sergefocus/onec-crs:8.3.10.2252
     container_name: onec-crs
@@ -19,7 +20,46 @@ services:
       - back_net
     restart: always
 
+  httpd-1c:
+    build:
+      context: .
+      dockerfile: Dockerfile-httpd-1c
+      args:
+        - ONEC_VERSION=8.3.10.2252 
+        - ONEC_IP=192.168.0.105 
 
+    image: sergefocus/httpd-1c:8.3.10.2252
+    container_name: httpd-1c
+    ports:
+      - 8081:80
+    volumes:
+#      - ./stor/1cccc/:/opt/1C/v8.3/i386
+      - ./stor/:/home/usr1cv8/.1cv8
+      - ./conf/httpd.conf:/usr/local/apache2/conf/httpd.conf
+    networks:
+      - back_net
+
+    depends_on: 
+      - repo
+    restart: always
+
+  commithook:
+    build:
+      context: .
+      dockerfile: Dockerfile-commithook
+
+    image: sergefocus/commithook
+    container_name: commithook
+    ports:
+      - 80:80
+    volumes:
+      - ./log/:/var/log/nginx
+      - ./conf/nginx.conf:/nginx/conf/nginx.conf
+
+    networks:
+      - back_net
+
+    restart: always
 
 networks:
   back_net: {}
