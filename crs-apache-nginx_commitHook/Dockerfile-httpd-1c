@@ -1,0 +1,68 @@
+# Докер файл с Сервер хранилища 1С 8.3
+# MAINTAINER "Serge Skurskiy" <serge.focus@gmail.com>
+
+FROM alpine:latest as downloader
+
+ARG ONEC_VERSION
+ARG ONEC_IP
+ENV installer_type=server32
+
+WORKDIR /tmp
+
+RUN apk --no-cache add bash curl grep wget\
+  && wget http://${ONEC_IP}:8880/deb_${ONEC_VERSION}.tar.gz --no-check-certificate  \
+  && for file in *.tar.gz; do tar -zxf "$file"; done \
+  && rm -rf *.tar.gz
+
+FROM i386/debian:stretch-slim as base
+
+ARG gosu_ver=1.11
+ARG nls_enabled=false
+ENV nls=$nls_enabled
+
+COPY --from=downloader /tmp/*.deb /tmp/
+
+WORKDIR /tmp
+
+SHELL ["/bin/bash", "-c"]
+RUN set -xe; \
+  if [ "$nls" = true ]; then \
+    dpkg -i 1c-enterprise83-{common,server,ws,crs}*.deb; \
+  else \
+    dpkg -i 1c-enterprise83-{common,server,ws,crs}_*.deb; \
+  fi
+
+ADD https://github.com/tianon/gosu/releases/download/$gosu_ver/gosu-i386 /bin/gosu
+
+RUN chmod +x /bin/gosu
+
+FROM i386/httpd:2.4
+
+LABEL maintainer="Serge Skurskiy <serge.focus@gmail.com>"
+
+ARG onec_uid="999"
+ARG onec_gid="999"
+
+COPY --from=base /opt /opt
+COPY --from=base /bin/gosu /bin/gosu
+
+RUN set -xe \
+  && apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      locales \
+  && rm -rf \
+    /var/lib/apt/lists/* \
+    /var/cache/debconf \
+  && localedef -i ru_RU -c -f UTF-8 -A /usr/share/locale/locale.alias ru_RU.UTF-8
+ENV LANG ru_RU.UTF-8
+
+RUN groupadd -r grp1cv8 --gid=$onec_gid \
+  && useradd -r -g grp1cv8 --uid=$onec_uid --home-dir=/home/usr1cv8 --shell=/bin/bash usr1cv8 \
+  && mkdir -p /home/usr1cv8/.1cv8 \
+  && chown -R usr1cv8:grp1cv8 /home/usr1cv8
+
+COPY ./conf/httpd.conf /usr/local/apache2/conf/httpd.conf
+COPY ./stor/repository.1ccr /home/usr1cv8/.1cv8 
+
+EXPOSE 80
+CMD ["httpd-foreground"]
